@@ -4,6 +4,8 @@ set -euo pipefail
 export SEISCOMP_ROOT="${SEISCOMP_ROOT:-/home/sysop/seiscomp}"
 export PATH="$SEISCOMP_ROOT/bin:$PATH"
 
+mkdir -p "$SEISCOMP_ROOT/var/run"
+
 module="${MODULE:?MODULE is required}"
 seedlink="${SEEDLINK_HOST:-seedlink}"
 scmaster="${SCMASTER_HOST:-scmaster}"
