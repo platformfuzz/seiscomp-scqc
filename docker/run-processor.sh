@@ -14,14 +14,16 @@ db_user="${DB_USER:-sysop}"
 db_password="${DB_PASSWORD:-sysop}"
 db_name="${DB_NAME:-seiscomp}"
 
-python3 - "$SEISCOMP_ROOT" "$seedlink" "$scmaster" "$db_host" "$db_user" "$db_password" "$db_name" <<'PY'
-import pathlib, sys
-root, seedlink, scmaster, db_host, db_user, db_password, db_name = sys.argv[1:]
+python3 - "$SEISCOMP_ROOT" "$seedlink" "$scmaster" "$db_host" "$db_user" "$db_password" "$db_name" "$module" <<'ENDPY'
+import os, pathlib, sys
+root, seedlink, scmaster, db_host, db_user, db_password, db_name, module = sys.argv[1:]
 g = pathlib.Path(root) / "etc" / "global.cfg"
 text = g.read_text() if g.exists() else ""
+host = os.environ.get("HOSTNAME", "task")
 keys = {
     "recordstream": f"slink://{seedlink}:18000",
     "connection.server": f"{scmaster}/production",
+    "connection.clientName": f"{module}-{host}",
     "database": f"mysql://{db_user}:{db_password}@{db_host}/{db_name}",
 }
 seen = set()
@@ -42,8 +44,9 @@ for key, val in keys.items():
         out.append(f"{key} = {val}")
 g.parent.mkdir(parents=True, exist_ok=True)
 g.write_text("\n".join(out) + "\n")
-PY
+ENDPY
 
 seiscomp enable "$module" >/dev/null || true
+seiscomp update-config "$module" || true
 echo "starting $module scmaster=${scmaster} seedlink=${seedlink}"
 exec seiscomp exec "$module" --console 1
